@@ -1,6 +1,6 @@
 [submodule "Submodules/MixedRealityToolkit-Unity"]
 	path = Submodules/MixedRealityToolkit-Unity
 	url = https://github.com/Microsoft/MixedRealityToolkit-Unity
-[submodule "submodules/HoloLensWithOpenCVForUnityExample"]
-	path = submodules/HoloLensWithOpenCVForUnityExample
+[submodule "Submodules/HoloLensWithOpenCVForUnityExample"]
+	path = Submodules/HoloLensWithOpenCVForUnityExample
 	url = https://github.com/EnoxSoftware/HoloLensWithOpenCVForUnityExample
