@@ -23,7 +23,6 @@ namespace Assets
         // 物体検出
         private CascadeClassifier _cascade;
 
-
         private bool _isDetecting = false;
         private Mat _grayMat4Thread;
         private CascadeClassifier _cascade4Thread;
@@ -42,7 +41,6 @@ namespace Assets
 
         void Update()
         {
-
             lock (_sync)
             {
                 while (ExecuteOnMainThread.Count > 0)
@@ -50,7 +48,6 @@ namespace Assets
                     ExecuteOnMainThread.Dequeue().Invoke();
                 }
             }
-
 
             if (_webCamTextureToMatHelper.IsPlaying() && _webCamTextureToMatHelper.DidUpdateThisFrame())
             {
@@ -63,9 +60,7 @@ namespace Assets
                 if (EnableDetection && !_isDetecting)
                 {
                     _isDetecting = true;
-
                     _grayMat.copyTo(_grayMat4Thread);
-
                     //StartThread(ThreadWorker);
                 }
 
