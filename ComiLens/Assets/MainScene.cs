@@ -1,4 +1,6 @@
-﻿using HoloLensWithOpenCVForUnityExample;
+﻿using System;
+using System.Collections.Generic;
+using HoloLensWithOpenCVForUnityExample;
 using OpenCVForUnity;
 using UnityEngine;
 
@@ -7,6 +9,13 @@ namespace Assets
     [RequireComponent(typeof(OptimizationWebCamTextureToMatHelper))]
     public class MainScene : MonoBehaviour
     {
+        private readonly static Queue<Action> ExecuteOnMainThread = new Queue<Action>();
+
+        public bool EnableDetection { get; set; }
+
+        public bool UseSeparateDetection { get; set; }
+
+        object _sync = new object();
 
         Texture2D texture;
 
@@ -14,6 +23,8 @@ namespace Assets
         // 物体検出
         private CascadeClassifier _cascade;
 
+
+        private bool _isDetecting = false;
         private Mat _grayMat4Thread;
         private CascadeClassifier _cascade4Thread;
 
@@ -26,11 +37,47 @@ namespace Assets
         {
             _webCamTextureToMatHelper = gameObject.GetComponent<OptimizationWebCamTextureToMatHelper>();
             _webCamTextureToMatHelper.Initialize();
-
+            EnableDetection = true;
         }
-	
-        void Update () {
-		
+
+        void Update()
+        {
+
+            lock (_sync)
+            {
+                while (ExecuteOnMainThread.Count > 0)
+                {
+                    ExecuteOnMainThread.Dequeue().Invoke();
+                }
+            }
+
+
+            if (_webCamTextureToMatHelper.IsPlaying() && _webCamTextureToMatHelper.DidUpdateThisFrame())
+            {
+                Mat rgbaMat = _webCamTextureToMatHelper.GetDownScaleMat(_webCamTextureToMatHelper.GetMat());
+                // グレースケールに取得
+                Imgproc.cvtColor(rgbaMat, _grayMat, Imgproc.COLOR_RGBA2GRAY);
+                // グレースケール画像のヒストグラムを均一化
+                Imgproc.equalizeHist(_grayMat, _grayMat);
+
+                if (EnableDetection && !_isDetecting)
+                {
+                    _isDetecting = true;
+
+                    _grayMat.copyTo(_grayMat4Thread);
+
+                    //StartThread(ThreadWorker);
+                }
+
+                OpenCVForUnity.Rect[] rects;
+                if (!UseSeparateDetection)
+                {
+
+                }
+                else
+                {
+                }
+            }
         }
 
         public void OnWebCamTextureToMatHelperInitialized()
