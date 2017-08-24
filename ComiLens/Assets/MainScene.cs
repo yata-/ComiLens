@@ -2,13 +2,18 @@
 using System.Collections.Generic;
 using HoloLensWithOpenCVForUnityExample;
 using OpenCVForUnity;
+using OpenCVForUnity.RectangleTrack;
 using UnityEngine;
+using Rect = OpenCVForUnity.Rect;
 
 namespace Assets
 {
     [RequireComponent(typeof(OptimizationWebCamTextureToMatHelper))]
     public class MainScene : MonoBehaviour
     {
+        private const float OverlayDistance = 1;
+        private const float MinDetectionSizeRatio = 0.07f;
+
         private readonly static Queue<Action> ExecuteOnMainThread = new Queue<Action>();
 
         public bool EnableDetection { get; set; }
@@ -24,6 +29,7 @@ namespace Assets
         private CascadeClassifier _cascade;
 
         private bool _isDetecting = false;
+        private bool _hasUpdatedDetectionResult = false;
         private Mat _grayMat4Thread;
         private CascadeClassifier _cascade4Thread;
 
@@ -31,9 +37,30 @@ namespace Assets
         private OptimizationWebCamTextureToMatHelper _webCamTextureToMatHelper;
         // 結果
         private MatOfRect _detectionResult;
-        
+
+        private RectangleTracker _rectangleTracker;
+        List<Rect> _resultObjects = new List<Rect>();
+
+
+        bool _isThreadRunning = false;
+
+        bool isThreadRunning
+        {
+            get
+            {
+                lock (_sync)
+                    return _isThreadRunning;
+            }
+            set
+            {
+                lock (_sync)
+                    _isThreadRunning = value;
+            }
+        }
+
         void Start ()
         {
+            _rectangleTracker = new RectangleTracker();
             _webCamTextureToMatHelper = gameObject.GetComponent<OptimizationWebCamTextureToMatHelper>();
             _webCamTextureToMatHelper.Initialize();
             EnableDetection = true;
@@ -61,18 +88,57 @@ namespace Assets
                 {
                     _isDetecting = true;
                     _grayMat.copyTo(_grayMat4Thread);
-                    //StartThread(ThreadWorker);
+                    StartThread(ThreadWorker);
                 }
 
-                OpenCVForUnity.Rect[] rects;
-                if (!UseSeparateDetection)
+                // SeparateDetection?はとりあえず決め打ち
+                if (UseSeparateDetection == false)
                 {
+                    if (_hasUpdatedDetectionResult)
+                    {
+                        _hasUpdatedDetectionResult = false;
 
-                }
-                else
-                {
+                        _rectangleTracker.UpdateTrackedObjects(_detectionResult.toList());
+                    }
+
+                    _rectangleTracker.GetObjects(_resultObjects, true);
+                    var rects = _resultObjects.ToArray();
                 }
             }
+
+            if (_webCamTextureToMatHelper.IsPlaying())
+            {
+
+                Matrix4x4 cameraToWorldMatrix = Camera.main.cameraToWorldMatrix; ;
+
+                Vector3 ccCameraSpacePos = UnProjectVector(_projectionMatrix, new Vector3(0.0f, 0.0f, OverlayDistance));
+                Vector3 tlCameraSpacePos = UnProjectVector(_projectionMatrix, new Vector3(-OverlayDistance, OverlayDistance, OverlayDistance));
+
+                //position
+                Vector3 position = cameraToWorldMatrix.MultiplyPoint3x4(ccCameraSpacePos);
+                gameObject.transform.position = position;
+
+                //scale
+                Vector3 scale = new Vector3(Mathf.Abs(tlCameraSpacePos.x - ccCameraSpacePos.x) * 2, Mathf.Abs(tlCameraSpacePos.y - ccCameraSpacePos.y) * 2, 1);
+                gameObject.transform.localScale = scale;
+
+                // Rotate the canvas object so that it faces the user.
+                Quaternion rotation = Quaternion.LookRotation(-cameraToWorldMatrix.GetColumn(2), cameraToWorldMatrix.GetColumn(1));
+                gameObject.transform.rotation = rotation;
+
+                //_rectOverlay.UpdateOverlayTransform(gameObject.transform);
+            }
+        }
+        private Vector3 UnProjectVector(Matrix4x4 proj, Vector3 to)
+        {
+            Vector3 from = new Vector3(0, 0, 0);
+            var axsX = proj.GetRow(0);
+            var axsY = proj.GetRow(1);
+            var axsZ = proj.GetRow(2);
+            from.z = to.z / axsZ.z;
+            from.y = (to.y - (from.z * axsY.z)) / axsY.y;
+            from.x = (to.x - (from.z * axsX.z)) / axsX.x;
+            return from;
         }
 
         public void OnWebCamTextureToMatHelperInitialized()
@@ -120,7 +186,7 @@ namespace Assets
         {
             Debug.Log("OnWebCamTextureToMatHelperDisposed");
 
-            //StopThread();
+            StopThread();
 
             if (_grayMat != null)
             {
@@ -145,5 +211,57 @@ namespace Assets
             Debug.Log("OnWebCamTextureToMatHelperErrorOccurred " + errorCode);
         }
 
+        private void StartThread(Action action)
+        {
+            action.BeginInvoke(ar => action.EndInvoke(ar), null);
+        }
+
+        private void StopThread()
+        {
+            if (_isThreadRunning == false)
+                return;
+
+            while (isThreadRunning)
+            {
+                //Wait threading stop
+            }
+        }
+        private void ThreadWorker()
+        {
+            isThreadRunning = true;
+
+            DetectObject();
+
+            lock (_sync)
+            {
+                if (ExecuteOnMainThread.Count == 0)
+                {
+                    ExecuteOnMainThread.Enqueue(() => {
+                        OnDetectionDone();
+                    });
+                }
+            }
+
+            isThreadRunning = false;
+        }
+        private void OnDetectionDone()
+        {
+            _hasUpdatedDetectionResult = true;
+
+            _isDetecting = false;
+        }
+        private void DetectObject()
+        {
+            MatOfRect objects = new MatOfRect();
+            if (_cascade4Thread != null)
+            {
+                var matSize = new Size(_grayMat.cols() * MinDetectionSizeRatio, _grayMat.rows() * MinDetectionSizeRatio);
+                _cascade4Thread.detectMultiScale(_grayMat, objects, 1.1, 2,
+                    Objdetect.CASCADE_SCALE_IMAGE, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+                    matSize,
+                    new Size());
+            }
+            _detectionResult = objects;
+        }
     }
 }
