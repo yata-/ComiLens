@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using HoloLensWithOpenCVForUnityExample;
 using OpenCVForUnity;
 using OpenCVForUnity.RectangleTrack;
@@ -64,7 +65,6 @@ namespace Assets
         void Start ()
         {
             _talkBaloonComponent = GetComponentInChildren<TalkBaloonComponent>();
-            _talkBaloonComponent.Text = DateTime.Now.ToString();
 
             _rectangleTracker = new RectangleTracker();
             _webCamTextureToMatHelper = gameObject.GetComponent<OptimizationWebCamTextureToMatHelper>();
@@ -74,6 +74,7 @@ namespace Assets
 
         void Update()
         {
+            _talkBaloonComponent.Text = DateTime.Now.ToString();
             lock (_sync)
             {
                 while (ExecuteOnMainThread.Count > 0)
@@ -109,6 +110,11 @@ namespace Assets
 
                     _rectangleTracker.GetObjects(_resultObjects, true);
                     var rects = _resultObjects.ToArray();
+                    var rect = rects.FirstOrDefault();
+                    if (rect != null)
+                    {
+                        _talkBaloonComponent.FaceRect = rect;
+                    }
                 }
             }
 
