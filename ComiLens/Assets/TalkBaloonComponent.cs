@@ -23,7 +23,8 @@ public class TalkBaloonComponent : MonoBehaviour {
 	        return;
 	    }
 	    var trans = text.transform;
-	    trans.localPosition = new Vector3(FaceRect.x + FaceRect.width / 2 - 0.5f, 0.5f - FaceRect.y - FaceRect.height / 2, 0);
-	    trans.localScale = new Vector3(FaceRect.width, FaceRect.height, 1);
+	    trans.localPosition = new Vector3(FaceRect.x + FaceRect.width / 2 - 0.5f, 0.5f - FaceRect.y - FaceRect.height / 2 , 100);
+	    //trans.localScale = new Vector3(FaceRect.width, FaceRect.height, 1);
+	    Debug.Log(string.Format("{0}", FaceRect));
     }
 }
