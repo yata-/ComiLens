@@ -22,8 +22,8 @@ public class TalkBaloonComponent : MonoBehaviour {
 	    {
 	        return;
 	    }
-	    var transform = text.transform;
-	    transform.localPosition = new Vector3(FaceRect.x + FaceRect.width / 2 - 0.5f, 0.5f - FaceRect.y - FaceRect.height / 2, 0);
-	    transform.localScale = new Vector3(FaceRect.width, FaceRect.height, 1);
+	    var trans = text.transform;
+	    trans.localPosition = new Vector3(FaceRect.x + FaceRect.width / 2 - 0.5f, 0.5f - FaceRect.y - FaceRect.height / 2, 0);
+	    trans.localScale = new Vector3(FaceRect.width, FaceRect.height, 1);
     }
 }

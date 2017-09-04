@@ -4,4 +4,13 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 0
+    path: Assets/HoloLensWithOpenCVForUnityExample/HoloLensFaceDetectionOverlayExample/HoloLensFaceDetectionOverlayExample.unity
+    guid: 0234af6998912c54d80d30fd71ea3dac
+  - enabled: 0
+    path: Assets/HoloLensWithOpenCVForUnityExample/HoloLensFaceDetectionExample/HoloLensFaceDetectionExample.unity
+    guid: baa2a4dbb3054d14090050638224d277
+  - enabled: 1
+    path: Assets/MainScene.unity
+    guid: 92f4737e5fb26734eb8323488b4ddae6
