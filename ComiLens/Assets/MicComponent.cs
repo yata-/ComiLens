@@ -8,6 +8,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 #endif 
 
 using System.Text;
+using Assets;
 using HoloToolkit.Unity.InputModule;
 using UnityEngine;
 
@@ -63,7 +64,7 @@ public class MicComponent : MonoBehaviour
     }
     private void OnDestroy()
     {
-        //CheckForErrorOnCall(MicStream.MicDestroy());
+        CheckForErrorOnCall(MicStream.MicDestroy());
     }
     private static short FloatToInt16(float value)
     {

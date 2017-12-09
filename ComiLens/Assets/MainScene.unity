@@ -118,6 +118,7 @@ GameObject:
   - component: {fileID: 101652863}
   - component: {fileID: 101652865}
   - component: {fileID: 101652864}
+  - component: {fileID: 101652866}
   m_Layer: 0
   m_Name: Mic
   m_TagString: Untagged
@@ -229,6 +230,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
+--- !u!114 &101652866
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 101652862}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7fb0d0131e112f499a6e465d4459c24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  IsConnected: 0
 --- !u!20 &680786221 stripped
 Camera:
   m_PrefabParentObject: {fileID: 20000013304850028, guid: d379ed0a5618c9f479f58bd83a2d0ad3,

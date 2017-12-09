@@ -18,6 +18,9 @@ namespace Assets
         private const string RequestSubscrpitionHeaderKey = "Ocp-Apim-Subscription-Key";
         private string _token;
         private WebSocket _webSocket;
+
+        public bool IsConnected;
+
         public void StartConnection()
         { 
             _webSocket =  new WebSocket(ConversaationEndpoint);
@@ -34,16 +37,22 @@ namespace Assets
 
         public void Connect(string subscriptionKey)
         {
-            var coroutine = RequestToken(subscriptionKey);
-            StartCoroutine(coroutine);
+            StartCoroutine(RequestToken(subscriptionKey));
         }
 
         public IEnumerator RequestToken(string subscriptionKey)
         {
-            var request = UnityWebRequest.Post(TokenEndpoint, subscriptionKey);
-            request.SetRequestHeader(RequestSubscrpitionHeaderKey, _subscriptionKey);
+            var request = UnityWebRequest.Post(TokenEndpoint, "");
+            request.SetRequestHeader(RequestSubscrpitionHeaderKey, subscriptionKey);
             yield return request.Send();
             _token = request.downloadHandler.text;
+
+            Debug.Log(string.Format("Cognitive Token: {0}", _token));
+        }
+        void Start()
+        {
+            var service = GetComponent<CognitiveService>();
+            service.Connect("");
         }
     }
 }
