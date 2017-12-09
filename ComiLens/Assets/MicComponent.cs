@@ -2,6 +2,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+#if UNITY_EDITOR
+#else
+using System.Runtime.InteropServices.WindowsRuntime;
+#endif 
+
 using System.Text;
 using HoloToolkit.Unity.InputModule;
 using UnityEngine;
@@ -9,11 +14,18 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public class MicComponent : MonoBehaviour
 {
-    private readonly List<short> samplingData = new List<short>();
-    private float _averageAmplitude;
-    public bool KeepAllData = false;
-    public float InputGain = 1;
-    public MicStream.StreamCategory StreamType = MicStream.StreamCategory.ROOM_CAPTURE;
+
+    private bool saved;
+    //public float timeOut;
+    private float timeElapsed;
+
+
+    private List<short> samplingData = new List<short>();
+    // MicStreamに対してフィールドの変数を渡すとアプリが落ちる。。。
+    //private float _averageAmplitude;
+    //public bool KeepAllData = false;
+    //public float InputGain = 1;
+    //public MicStream.StreamCategory StreamType = MicStream.StreamCategory.HIGH_QUALITY_VOICE;
     private static void CheckForErrorOnCall(int returnCode)
     {
         MicStream.CheckForErrorOnCall(returnCode);
@@ -21,13 +33,22 @@ public class MicComponent : MonoBehaviour
 
     private void Awake()
     {
-        CheckForErrorOnCall(MicStream.MicInitializeCustomRate((int)StreamType, AudioSettings.outputSampleRate));
-        CheckForErrorOnCall(MicStream.MicStartStream(KeepAllData, false));
-        CheckForErrorOnCall(MicStream.MicSetGain(InputGain));
+        var setting = AudioSettings.outputSampleRate;
+        CheckForErrorOnCall(MicStream.MicInitializeCustomRate(2, setting));
     }
 
     void Update()
     {
+        timeElapsed += Time.deltaTime;
+
+        if (timeElapsed >= 5 && saved == false)
+        {
+            CheckForErrorOnCall(MicStream.MicStopStream());
+            WriteAudioData();
+            timeElapsed = 0.0f;
+            saved = true;
+        }
+
         if (Input.GetKeyDown(KeyCode.S))
         {
             CheckForErrorOnCall(MicStream.MicStopStream());
@@ -37,10 +58,12 @@ public class MicComponent : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        CheckForErrorOnCall(MicStream.MicStartStream(false, false));
+        CheckForErrorOnCall(MicStream.MicSetGain(1));
     }
     private void OnDestroy()
     {
-        CheckForErrorOnCall(MicStream.MicDestroy());
+        //CheckForErrorOnCall(MicStream.MicDestroy());
     }
     private static short FloatToInt16(float value)
     {
@@ -75,112 +98,112 @@ public class MicComponent : MonoBehaviour
         var sampingDataByteSize = samplingDataSize * blockAlign; //DataSize
 
 #if UNITY_EDITOR
-        using (var file = new FileStream(@"C:\Users\guide\Desktop\comirens" + fileName, FileMode.Create))
+        using (var file = new FileStream(@"C:\Users\guide\Desktop\comirens\" + fileName, FileMode.Create))
         {
 #else
-        task = Task.Run(async () =>
+        var task = System.Threading.Tasks.Task.Run(async () =>
         {
-            var file = await ApplicationData.Current.LocalFolder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
-            using (var outputStrm = await file.OpenAsync(FileAccessMode.ReadWrite))
+            var file = await Windows.Storage.ApplicationData.Current.LocalFolder.CreateFileAsync(fileName, Windows.Storage.CreationCollisionOption.ReplaceExisting);
+            using (var outputStrm = await file.OpenAsync(Windows.Storage.FileAccessMode.ReadWrite))
             {
 #endif
 
-            var bytes = Encoding.UTF8.GetBytes("RIFF");
+                var bytes = Encoding.UTF8.GetBytes("RIFF");
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes(headerSize + sampingDataByteSize - 8);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes(headerSize + sampingDataByteSize - 8);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = Encoding.UTF8.GetBytes("WAVE");
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = Encoding.UTF8.GetBytes("WAVE");
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = Encoding.UTF8.GetBytes("fmt ");
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = Encoding.UTF8.GetBytes("fmt ");
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes(18);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes(18);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes((short)1);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes((short)1);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes(toChannels);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes(toChannels);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes(toSampleRate);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes(toSampleRate);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes(averageBytesPerSecond);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes(averageBytesPerSecond);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes(blockAlign);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes(blockAlign);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes(toBitsPerSample);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes(toBitsPerSample);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes(extraSize);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes(extraSize);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = Encoding.UTF8.GetBytes("data");
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = Encoding.UTF8.GetBytes("data");
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
-            bytes = BitConverter.GetBytes(sampingDataByteSize);
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
+                bytes = BitConverter.GetBytes(sampingDataByteSize);
 #if UNITY_EDITOR
             file.Write(bytes, 0, bytes.Length);
 #else
-            await outputStrm.WriteAsync(bytes.AsBuffer());
-#endif            
+                await outputStrm.WriteAsync(bytes.AsBuffer());
+#endif
 
 
-            for (var i = 0; i < samplingDataSize; i++)
-            {
-                var dat = BitConverter.GetBytes(samplingData[i]);
+                for (var i = 0; i < samplingDataSize; i++)
+                {
+                    var dat = BitConverter.GetBytes(samplingData[i]);
 #if UNITY_EDITOR
                 file.Write(dat, 0, dat.Length);
 #else
-                await outputStrm.WriteAsync(dat.AsBuffer());
+                    await outputStrm.WriteAsync(dat.AsBuffer());
 #endif
+                }
             }
-        }
 #if !UNITY_EDITOR
         });
         task.Wait();
