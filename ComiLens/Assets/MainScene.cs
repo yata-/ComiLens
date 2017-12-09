@@ -225,7 +225,13 @@ namespace Assets
 
         private void StartThread(Action action)
         {
+#if UNITY_METRO && NETFX_CORE
+            System.Threading.Tasks.Task.Run(() => action());
+#elif UNITY_METRO
             action.BeginInvoke(ar => action.EndInvoke(ar), null);
+#else
+            ThreadPool.QueueUserWorkItem (_ => action());
+#endif
         }
 
         private void StopThread()
