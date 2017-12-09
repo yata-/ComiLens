@@ -16,14 +16,15 @@ public class TalkBaloonComponent : MonoBehaviour {
 	// Update is called once per frame
 	void Update ()
 	{
+	    var canvas = GetComponent<Canvas>();
 	    var text = GetComponentInChildren<Text>();
 	    text.text = Text;
 	    if (FaceRect == null)
 	    {
 	        return;
 	    }
-	    var trans = text.transform;
-	    trans.localPosition = new Vector3(FaceRect.x + FaceRect.width / 2 - 0.5f, 0.5f - FaceRect.y - FaceRect.height / 2 , 100);
+	    var trans = canvas.transform.transform;
+	    trans.localPosition = new Vector3(FaceRect.x + FaceRect.width / 2 - 0.5f, 0.5f - FaceRect.y - FaceRect.height / 2 , 600);
 	    //trans.localScale = new Vector3(FaceRect.width, FaceRect.height, 1);
 	    Debug.Log(string.Format("{0}", FaceRect));
     }
