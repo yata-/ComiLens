@@ -3,10 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using BestHTTP.WebSocket;
 using UnityEngine;
 using UnityEngine.Networking;
-using WebSocketSharp;
-
 namespace Assets
 {
     public class CognitiveService : MonoBehaviour
@@ -23,20 +22,21 @@ namespace Assets
 
         public void StartConnection()
         { 
-            _webSocket =  new WebSocket(ConversaationEndpoint);
-            _webSocket.OnMessage += (s, e) =>
-            {
+            //_webSocket =  new WebSocket(ConversaationEndpoint);
+            //_webSocket.OnMessage += (s, e) =>
+            //{
                 
-            };
-            _webSocket.OnOpen += (s, e) =>
-            {
+            //};
+            //_webSocket.OnOpen += (s, e) =>
+            //{
                 
-            };
-            _webSocket.Connect();
+            //};
+            //_webSocket.Connect();
         }
 
         public void Connect(string subscriptionKey)
         {
+            Debug.Log(string.Format("Cognitive Request: {0}", subscriptionKey));
             StartCoroutine(RequestToken(subscriptionKey));
         }
 
@@ -53,6 +53,7 @@ namespace Assets
         {
             var service = GetComponent<CognitiveService>();
             service.Connect("");
+            
         }
     }
 }
