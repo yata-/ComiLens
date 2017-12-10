@@ -15,23 +15,26 @@ namespace Assets
 
         private string _subscriptionKey;
         private const string RequestSubscrpitionHeaderKey = "Ocp-Apim-Subscription-Key";
+        private const string RequestContentTypeHeaderKey = "Content-type";
+        private const string RequestContentTypeHeaderValue = "audio/wav; codec=audio/pcm; samplerate=16000";
         private string _token;
         private WebSocket _webSocket;
 
         public bool IsConnected;
 
         public void StartConnection()
-        { 
-            //_webSocket =  new WebSocket(ConversaationEndpoint);
-            //_webSocket.OnMessage += (s, e) =>
-            //{
-                
-            //};
-            //_webSocket.OnOpen += (s, e) =>
-            //{
-                
-            //};
-            //_webSocket.Connect();
+        {
+            _webSocket = new WebSocket(new Uri(ConversaationEndpoint));
+            _webSocket.InternalRequest.SetHeader(RequestSubscrpitionHeaderKey, _token);
+            _webSocket.InternalRequest.SetHeader(RequestContentTypeHeaderKey, RequestContentTypeHeaderValue);
+            _webSocket.OnMessage += (s, m) =>
+            {
+
+            };
+            _webSocket.OnOpen += (s) =>
+            {
+                Debug.Log("WebSocket Open!");
+            };
         }
 
         public void Connect(string subscriptionKey)
