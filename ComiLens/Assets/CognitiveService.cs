@@ -14,27 +14,42 @@ namespace Assets
         private const string TokenEndpoint = "https://api.cognitive.microsoft.com/sts/v1.0/issueToken";
 
         private string _subscriptionKey;
-        private const string RequestSubscrpitionHeaderKey = "Ocp-Apim-Subscription-Key";
-        private const string RequestContentTypeHeaderKey = "Content-type";
-        private const string RequestContentTypeHeaderValue = "audio/wav; codec=audio/pcm; samplerate=16000";
+        private const string SubscrpitionHeaderKey = "Ocp-Apim-Subscription-Key";
+        private const string ContentTypeHeaderKey = "Content-type";
+        private const string ContentTypeHeaderValue = "audio/wav; codec=audio/pcm; samplerate=16000";
+        private const string AuthorizationHeaderKey = "Authorization";
+        private const string AuthorizationHeaderValuePrefix = "Bearer ";
+
+        private const string TransferEncodingHeaderKey = "Transfer-Encoding";
+        private const string TransferEncodingHeaderValue = "chunked";
+
+
         private string _token;
         private WebSocket _webSocket;
 
-        public bool IsConnected;
+        public bool IsConnected { get; private set; }
 
-        public void StartConnection()
+        private void ConnectWebSocket()
         {
             _webSocket = new WebSocket(new Uri(ConversaationEndpoint));
-            _webSocket.InternalRequest.SetHeader(RequestSubscrpitionHeaderKey, _token);
-            _webSocket.InternalRequest.SetHeader(RequestContentTypeHeaderKey, RequestContentTypeHeaderValue);
+            _webSocket.InternalRequest.SetHeader(AuthorizationHeaderKey, AuthorizationHeaderValuePrefix+ _token);
+            _webSocket.InternalRequest.SetHeader(ContentTypeHeaderKey, ContentTypeHeaderValue);
+            _webSocket.InternalRequest.SetHeader(TransferEncodingHeaderKey, TransferEncodingHeaderValue);
             _webSocket.OnMessage += (s, m) =>
             {
 
             };
             _webSocket.OnOpen += (s) =>
             {
+                IsConnected = true;
                 Debug.Log("WebSocket Open!");
             };
+            _webSocket.OnError += (s, e) =>
+            {
+                IsConnected = false;
+                Debug.Log("WebSocket Error!");
+            };
+            _webSocket.Open();
         }
 
         public void Connect(string subscriptionKey)
@@ -46,17 +61,22 @@ namespace Assets
         public IEnumerator RequestToken(string subscriptionKey)
         {
             var request = UnityWebRequest.Post(TokenEndpoint, "");
-            request.SetRequestHeader(RequestSubscrpitionHeaderKey, subscriptionKey);
+            request.SetRequestHeader(SubscrpitionHeaderKey, subscriptionKey);
             yield return request.Send();
             _token = request.downloadHandler.text;
 
             Debug.Log(string.Format("Cognitive Token: {0}", _token));
+            ConnectWebSocket();
         }
         void Start()
         {
             var service = GetComponent<CognitiveService>();
             service.Connect("");
-            
+        }
+
+        public void Send(byte[] bytes)
+        {
+            _webSocket.Send(bytes);
         }
     }
 }
