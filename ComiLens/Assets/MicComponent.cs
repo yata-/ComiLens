@@ -20,6 +20,8 @@ public class MicComponent : MonoBehaviour
     //public float timeOut;
     private float timeElapsed;
 
+    private CognitiveService _service;
+
 
     private List<short> samplingData = new List<short>();
     // MicStreamに対してフィールドの変数を渡すとアプリが落ちる。。。
@@ -36,6 +38,7 @@ public class MicComponent : MonoBehaviour
     {
         var setting = AudioSettings.outputSampleRate;
         CheckForErrorOnCall(MicStream.MicInitializeCustomRate(2, setting));
+        _service = this.GetComponent<CognitiveService>();
     }
 
     void Update()
@@ -45,7 +48,12 @@ public class MicComponent : MonoBehaviour
         if (timeElapsed >= 5 && saved == false)
         {
             CheckForErrorOnCall(MicStream.MicStopStream());
-            WriteAudioData();
+
+            if (this._service.IsConnected)
+            {
+                this._service.Send(ConvertBytes(samplingData.ToArray()));
+            }
+
             timeElapsed = 0.0f;
             saved = true;
         }
@@ -75,14 +83,48 @@ public class MicComponent : MonoBehaviour
     }
     private void OnAudioFilterRead(float[] buffer, int numChannels)
     {
+        Debug.Log("OnAudioFilterRead:");
         // this is where we call into the DLL and let it fill our audio buffer for us
         CheckForErrorOnCall(MicStream.MicGetFrame(buffer, buffer.Length, numChannels));
-        foreach (var f in buffer)
+        lock (this)
         {
-            samplingData.Add(FloatToInt16(f));
+            Debug.Log("samplingDataSize:" + buffer.Length);
+            // Resampling datas from microphone(ex:48000hz) to 16000hz.
+            var reduction = 48000 / 16000 * numChannels;
+
+            var convBufSize = buffer.Length / reduction;
+            if (buffer.Length % reduction > 0) convBufSize++;
+            var convBuf = new short[convBufSize];
+            var count = 0;
+            float ave = 0;
+            while (count < convBufSize - 1)
+            {
+                ave = 0;
+                for (var j = 0; j < reduction; j++)
+                    ave += buffer[count * reduction + j];
+                ave = ave / reduction * 20f;
+                convBuf[count] = FloatToInt16(ave);
+                count++;
+            }
+            ave = 0;
+            for (var j = count * reduction; j < buffer.Length; j++)
+                ave += buffer[j];
+            ave = ave / (buffer.Length + count * reduction + 1);
+            convBuf[count] = FloatToInt16(ave);
+
+            samplingData.AddRange(convBuf);
+            //convBuf = null;
         }
     }
-
+    private IEnumerable<byte> ConvertBytes(short[] sampleData)
+    {
+        foreach (var s in sampleData)
+        {
+            var bytes = BitConverter.GetBytes(s);
+            yield return bytes[0];
+            yield return bytes[1];
+        }
+    }
     private void WriteAudioData()
     {
         var fileName = "StreamingDataHolo.wav";

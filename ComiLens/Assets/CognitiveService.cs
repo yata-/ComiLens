@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using BestHTTP;
@@ -11,7 +12,7 @@ namespace Assets
 {
     public class CognitiveService : MonoBehaviour
     {
-        private const string ConversaationEndpoint = "wss://speech.platform.bing.com/speech/recognition/conversation/cognitiveservices/v1";
+        private const string ConversaationEndpoint = "wss://speech.platform.bing.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US";
         private const string TokenEndpoint = "https://api.cognitive.microsoft.com/sts/v1.0/issueToken";
         
         private const string SubscrpitionHeaderKey = "Ocp-Apim-Subscription-Key";
@@ -41,9 +42,18 @@ namespace Assets
             _webSocket.InternalRequest.SetHeader("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==");
             _webSocket.InternalRequest.SetHeader("Sec-WebSocket-Version", "13");
             _webSocket.InternalRequest.SetHeader("Origin", "https://speech.platform.bing.com");
+            _webSocket.OnErrorDesc += (s, e) =>
+            {
+                Debug.Log("WebSocket OnError!");
+            };
+            _webSocket.OnClosed += (s, i, m) =>
+            {
+                Debug.Log("WebSocket OnClosed!");
+
+            };
             _webSocket.OnMessage += (s, m) =>
             {
-
+                Debug.Log("WebSocket OnMessage!"+m);
             };
             _webSocket.OnOpen += (s) =>
             {
@@ -88,9 +98,74 @@ namespace Assets
             service.Connect("");
         }
 
-        public void Send(byte[] bytes)
+        public void Send(IEnumerable<byte> bytes)
         {
-            _webSocket.Send(bytes);
+            var requestid = Guid.NewGuid().ToString("N");
+            var outputBuilder = new StringBuilder();
+            outputBuilder.Append("path:audio" + Environment.NewLine);
+            outputBuilder.Append("x-requestid:" + requestid  + Environment.NewLine);
+            outputBuilder.Append("x-timestamp:" +DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffK")+ Environment.NewLine);
+            outputBuilder.Append("content-type:audio/x-wav" + Environment.NewLine);
+
+            var headerBytes = Encoding.ASCII.GetBytes(outputBuilder.ToString());
+            //var headerbuffer = new ArraySegment<byte>(headerBytes, 0, headerBytes.Length);
+            //var str = "0x" + (headerBytes.Length).ToString("X");
+            var headerHeadBytes = BitConverter.GetBytes((UInt16)headerBytes.Length);
+            var isBigEndian = !BitConverter.IsLittleEndian;
+            var headerHead = !isBigEndian ? new byte[] { headerHeadBytes[1], headerHeadBytes[0] } : new byte[] { headerHeadBytes[0], headerHeadBytes[1] };
+            ///* #endregion*/
+
+            //var length = Math.Min(4096 * 2 - headerBytes.Length - 8, currentChunk.AllBytes.Length - cursor); //8bytes for the chunk header
+
+            //var chunkHeader = Encoding.ASCII.GetBytes("data").Concat(BitConverter.GetBytes((UInt32)length)).ToArray();
+
+            //byte[] dataArray = new byte[length];
+            //Array.Copy(currentChunk.AllBytes, cursor, dataArray, 0, length);
+
+            //cursor += length;
+
+            var arr = headerHead.Concat(headerBytes).Concat(bytes).ToArray();
+            //var data = new List<byte>(GetWaveHeader());
+            //data.AddRange(bytes);
+
+            _webSocket.Send(arr);
         }
+
+        /// <summary>
+        ///     Create a RIFF Wave Header for PCM 16bit 16kHz Mono
+        /// </summary>
+        /// <returns></returns>
+        private byte[] GetWaveHeader()
+        {
+            var extraSize = 0;
+            var blockAlign = (short)(1 * (16 / 8));
+            var averageBytesPerSecond = 16000 * blockAlign;
+
+            using (var stream = new MemoryStream())
+            {
+                var writer = new BinaryWriter(stream, Encoding.UTF8);
+                writer.Write(Encoding.UTF8.GetBytes("RIFF"));
+                writer.Write(0);
+                writer.Write(Encoding.UTF8.GetBytes("WAVE"));
+                writer.Write(Encoding.UTF8.GetBytes("fmt "));
+                writer.Write(18 + extraSize);
+                writer.Write((short)1);
+                writer.Write(1);
+                writer.Write(16000);
+                writer.Write(averageBytesPerSecond);
+                writer.Write(blockAlign);
+                writer.Write(16);
+                writer.Write((short)extraSize);
+
+                writer.Write(Encoding.UTF8.GetBytes("data"));
+                writer.Write(0);
+
+                stream.Position = 0;
+                var buffer = new byte[stream.Length];
+                stream.Read(buffer, 0, buffer.Length);
+                return buffer;
+            }
+        }
+
     }
 }
