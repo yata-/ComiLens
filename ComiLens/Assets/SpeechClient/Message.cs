@@ -2,16 +2,33 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Newtonsoft.Json;
 
 
 namespace Assets.SpeechClient
 {
+
     public class Payload
     {
         public string RequestId { get; set; }
         public string ContentType { get; set; }
         public string Path { get; set; }
         public string Content{ get; set; }
+
+        public Message GetMessage()
+        {
+            return JsonConvert.DeserializeObject<Message>(Content);
+        }
+
+    }
+
+    public class Message
+    {
+        public string Status { get; set; }
+        public int Offset { get; set; }
+
+        public int Duration { get; set; }
+        public string Text { get; set; }
 
     }
 
