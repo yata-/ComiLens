@@ -4,15 +4,22 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Assets.SpeechClient;
 using BestHTTP;
 using BestHTTP.WebSocket;
+using UniRx;
 using UnityEngine;
 using UnityEngine.Networking;
 namespace Assets
 {
     public class CognitiveService : MonoBehaviour
     {
-        private const string ConversaationEndpoint = "wss://speech.platform.bing.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US";
+        private Subject<Message> _subject;
+        public IObservable<Message> MessageObservable { get { return _subject; } }
+
+        private const string LanguageJp = "ja-JP";
+        private const string LanguageEn= "en-US";
+        private const string ConversaationEndpoint = "wss://speech.platform.bing.com/speech/recognition/conversation/cognitiveservices/v1?language=";
         private const string TokenEndpoint = "https://api.cognitive.microsoft.com/sts/v1.0/issueToken";
         
         private const string SubscrpitionHeaderKey = "Ocp-Apim-Subscription-Key";
@@ -32,8 +39,7 @@ namespace Assets
 
         private void ConnectWebSocket()
         {
-
-            _webSocket = new WebSocket(new Uri(ConversaationEndpoint));
+            _webSocket = new WebSocket(new Uri(ConversaationEndpoint + LanguageJp));
 
             _webSocket.InternalRequest.SetHeader("Authorization", _token);
             _webSocket.InternalRequest.SetHeader("Upgrade", "websocket");
@@ -49,11 +55,32 @@ namespace Assets
             _webSocket.OnClosed += (s, i, m) =>
             {
                 Debug.Log("WebSocket OnClosed!");
-
             };
             _webSocket.OnMessage += (s, m) =>
             {
-                Debug.Log("WebSocket OnMessage!"+m);
+                try
+                {
+                    var parser = new PayloadParser();
+                    var payload = parser.Parse(m);
+                    var message = payload.GetMessage();
+
+                    Debug.Log("WebSocket Message "+ payload.Path);
+                    if (payload.Path == "speech.phrase")
+                    {
+                        Debug.Log("WebSocket Message Status" + payload.Content);
+
+                        if (string.IsNullOrEmpty(message.DisplayText) == false)
+                        {
+                            Debug.Log("WebSocket OnMessageText!" + message.DisplayText);
+                            _subject.OnNext(message);
+                        }
+
+                    }
+                }
+                catch (Exception e)
+                {
+                }
+                
             };
             _webSocket.OnOpen += (s) =>
             {
@@ -69,7 +96,6 @@ namespace Assets
                     errorMsg = string.Format("Status Code from Server: {0} and Message: {1}",
                         _webSocket.InternalRequest.Response.StatusCode,
                         _webSocket.InternalRequest.Response.Message);
-
                 Debug.Log("An error occured: " + errorMsg);
             };
             _webSocket.Open();
@@ -94,12 +120,24 @@ namespace Assets
         }
         void Start()
         {
+            _subject = new Subject<Message>();
+
             var service = GetComponent<CognitiveService>();
             service.Connect("");
         }
 
+        private bool _isSendHeaader = false;
+
         public void Send(IEnumerable<byte> bytes)
         {
+            if (_isSendHeaader)
+            {
+                _webSocket.Send(bytes.ToArray());
+                return;
+            }
+            _isSendHeaader = true;
+            IsConnected = false;
+
             var requestid = Guid.NewGuid().ToString("N");
             var outputBuilder = new StringBuilder();
             outputBuilder.Append("path:audio" + Environment.NewLine);
@@ -113,7 +151,6 @@ namespace Assets
             var headerHeadBytes = BitConverter.GetBytes((UInt16)headerBytes.Length);
             var isBigEndian = !BitConverter.IsLittleEndian;
             var headerHead = !isBigEndian ? new byte[] { headerHeadBytes[1], headerHeadBytes[0] } : new byte[] { headerHeadBytes[0], headerHeadBytes[1] };
-            ///* #endregion*/
 
             //var length = Math.Min(4096 * 2 - headerBytes.Length - 8, currentChunk.AllBytes.Length - cursor); //8bytes for the chunk header
 
