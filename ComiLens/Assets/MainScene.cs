@@ -5,6 +5,7 @@ using HoloLensWithOpenCVForUnityExample;
 using OpenCVForUnity;
 using OpenCVForUnity.RectangleTrack;
 using UnityEngine;
+using UniRx;
 using UnityEngine.UI;
 using Rect = OpenCVForUnity.Rect;
 
@@ -14,6 +15,7 @@ namespace Assets
     public class MainScene : MonoBehaviour
     {
         private TalkBaloonComponent _talkBaloonComponent;
+        private CognitiveService _cognitiveService;
 
         private const float OverlayDistance = 1;
         private const float MinDetectionSizeRatio = 0.07f;
@@ -65,6 +67,11 @@ namespace Assets
         void Start ()
         {
             _talkBaloonComponent = GetComponentInChildren<TalkBaloonComponent>();
+            _cognitiveService = GetComponentInChildren<CognitiveService>();
+            _cognitiveService.MessageObservable.Subscribe(p =>
+            {
+                _talkBaloonComponent.Text = p.Text;
+            });
 
             _rectangleTracker = new RectangleTracker();
             _webCamTextureToMatHelper = gameObject.GetComponent<OptimizationWebCamTextureToMatHelper>();
@@ -74,7 +81,7 @@ namespace Assets
 
         void Update()
         {
-            _talkBaloonComponent.Text = DateTime.Now.ToString();
+            //_talkBaloonComponent.Text = DateTime.Now.ToString();
             lock (_sync)
             {
                 while (ExecuteOnMainThread.Count > 0)

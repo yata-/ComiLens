@@ -39,7 +39,7 @@ namespace Assets.SpeechClient
             System.IO.StringReader rs = new System.IO.StringReader(value);
             var requestId = rs.ReadLine().Split(':')[1];
             var contentType = rs.ReadLine().Split(':')[1];
-            var path = rs.ReadLine().Split(':')[0];
+            var path = rs.ReadLine().Split(':')[1];
             var result = rs.ReadToEnd();
             var message = new Payload()
             {
