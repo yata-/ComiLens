@@ -70,7 +70,7 @@ namespace Assets
             _cognitiveService = GetComponentInChildren<CognitiveService>();
             _cognitiveService.MessageObservable.Subscribe(p =>
             {
-                _talkBaloonComponent.Text = p.Text;
+                _talkBaloonComponent.Text = p.DisplayText;
             });
 
             _rectangleTracker = new RectangleTracker();

@@ -41,21 +41,23 @@ public class MicComponent : MonoBehaviour
         _service = this.GetComponent<CognitiveService>();
     }
 
+    private bool isEnd = false;
     void Update()
     {
         timeElapsed += Time.deltaTime;
 
-        if (timeElapsed >= 5 && saved == false)
+        if (timeElapsed >= 10 && isEnd == false)
         {
+            isEnd = true;
             CheckForErrorOnCall(MicStream.MicStopStream());
-
+            WriteAudioData();
             if (this._service.IsConnected)
             {
                 this._service.Send(ConvertBytes(samplingData.ToArray()));
             }
+            samplingData.Clear();
 
             timeElapsed = 0.0f;
-            saved = true;
         }
 
         if (Input.GetKeyDown(KeyCode.S))
@@ -132,8 +134,8 @@ public class MicComponent : MonoBehaviour
         short extraSize = 0;
 
         short toBitsPerSample = 16;
-        short toChannels = 2;
-        int toSampleRate = AudioSettings.outputSampleRate;
+        short toChannels = 1;
+        int toSampleRate = 16000;// AudioSettings.outputSampleRate;
         var blockAlign = (short)(toChannels * (toBitsPerSample / 8));
         var averageBytesPerSecond = toSampleRate * blockAlign;
 

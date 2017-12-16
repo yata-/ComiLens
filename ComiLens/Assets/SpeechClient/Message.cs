@@ -24,11 +24,11 @@ namespace Assets.SpeechClient
 
     public class Message
     {
-        public string Status { get; set; }
+        public string RecognitionStatus { get; set; }
         public int Offset { get; set; }
 
         public int Duration { get; set; }
-        public string Text { get; set; }
+        public string DisplayText { get; set; }
 
     }
 
