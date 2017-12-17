@@ -31,7 +31,6 @@ namespace Assets
         private const string TransferEncodingHeaderKey = "Transfer-Encoding";
         private const string TransferEncodingHeaderValue = "chunked";
 
-
         private string _token;
         private WebSocket _webSocket;
 
@@ -115,18 +114,9 @@ namespace Assets
             service.Connect("");
         }
 
-        private bool _isSendHeaader = false;
 
         public void Send(IEnumerable<byte> bytes)
         {
-            if (_isSendHeaader)
-            {
-                _webSocket.Send(bytes.ToArray());
-                return;
-            }
-            _isSendHeaader = true;
-            IsConnected = false;
-
             var requestid = Guid.NewGuid().ToString("N");
             var outputBuilder = new StringBuilder();
             outputBuilder.Append("path:audio" + Environment.NewLine);
