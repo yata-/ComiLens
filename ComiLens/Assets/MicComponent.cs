@@ -50,7 +50,7 @@ public class MicComponent : MonoBehaviour
         {
             isEnd = true;
             CheckForErrorOnCall(MicStream.MicStopStream());
-            WriteAudioData();
+            //WriteAudioData();
             if (this._service.IsConnected)
             {
                 this._service.Send(ConvertBytes(samplingData.ToArray()));
@@ -85,12 +85,12 @@ public class MicComponent : MonoBehaviour
     }
     private void OnAudioFilterRead(float[] buffer, int numChannels)
     {
-        Debug.Log("OnAudioFilterRead:");
+        //Debug.Log("OnAudioFilterRead:");
         // this is where we call into the DLL and let it fill our audio buffer for us
         CheckForErrorOnCall(MicStream.MicGetFrame(buffer, buffer.Length, numChannels));
         lock (this)
         {
-            Debug.Log("samplingDataSize:" + buffer.Length);
+            //Debug.Log("samplingDataSize:" + buffer.Length);
             // Resampling datas from microphone(ex:48000hz) to 16000hz.
             var reduction = 48000 / 16000 * numChannels;
 

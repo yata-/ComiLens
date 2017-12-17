@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Assets.SpeechClient;
 using HoloLensWithOpenCVForUnityExample;
 using OpenCVForUnity;
 using OpenCVForUnity.RectangleTrack;
@@ -70,7 +71,15 @@ namespace Assets
             _cognitiveService = GetComponentInChildren<CognitiveService>();
             _cognitiveService.MessageObservable.Subscribe(p =>
             {
-                _talkBaloonComponent.Text = p.DisplayText;
+                if (p.Type == PayloadType.Phrase)
+                {
+                    var message = p.GetMessage();
+                    Debug.Log("WebSocket Message Status" + p.Content);
+                    if (message.Status == RecognitionStatus.Success)
+                    {
+                        _talkBaloonComponent.Text = message.DisplayText;
+                    }
+                }
             });
 
             _rectangleTracker = new RectangleTracker();

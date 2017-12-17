@@ -14,8 +14,8 @@ namespace Assets
 {
     public class CognitiveService : MonoBehaviour
     {
-        private Subject<Message> _subject;
-        public IObservable<Message> MessageObservable { get { return _subject; } }
+        private Subject<Payload> _subject;
+        public IObservable<Payload> MessageObservable { get { return _subject; } }
 
         private const string LanguageJp = "ja-JP";
         private const string LanguageEn= "en-US";
@@ -62,20 +62,9 @@ namespace Assets
                 {
                     var parser = new PayloadParser();
                     var payload = parser.Parse(m);
-                    var message = payload.GetMessage();
 
                     Debug.Log("WebSocket Message "+ payload.Path);
-                    if (payload.Path == "speech.phrase")
-                    {
-                        Debug.Log("WebSocket Message Status" + payload.Content);
-
-                        if (string.IsNullOrEmpty(message.DisplayText) == false)
-                        {
-                            Debug.Log("WebSocket OnMessageText!" + message.DisplayText);
-                            _subject.OnNext(message);
-                        }
-
-                    }
+                    _subject.OnNext(payload);
                 }
                 catch (Exception e)
                 {
@@ -120,7 +109,7 @@ namespace Assets
         }
         void Start()
         {
-            _subject = new Subject<Message>();
+            _subject = new Subject<Payload>();
 
             var service = GetComponent<CognitiveService>();
             service.Connect("");
