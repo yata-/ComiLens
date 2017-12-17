@@ -42,6 +42,8 @@ namespace Assets
         private Mat _grayMat4Thread;
         private CascadeClassifier _cascade4Thread;
 
+        private string _currentText = "";
+
         private Matrix4x4 _projectionMatrix;
         private OptimizationWebCamTextureToMatHelper _webCamTextureToMatHelper;
         // 結果
@@ -74,6 +76,7 @@ namespace Assets
 
         void Start ()
         {
+            _currentText = "";
             _visibleSubject = new Subject<bool>();
             _talkBaloonComponent = GetComponentInChildren<TalkBaloonComponent>();
             _cognitiveService = GetComponentInChildren<CognitiveService>();
@@ -85,7 +88,8 @@ namespace Assets
                     Debug.Log("WebSocket Message Phrase" + p.Content);
                     if (message.Status == RecognitionStatus.Success)
                     {
-                        _talkBaloonComponent.Text = message.DisplayText;
+                        _currentText += message.DisplayText;
+                        _talkBaloonComponent.Text = _currentText;
                     }
                     _visibleSubject.OnNext(true);
                 }
@@ -101,7 +105,7 @@ namespace Assets
                 else if (p.Type == PayloadType.StartDetected)
                 {
                     CanvasGroup.alpha = 1;
-                    _talkBaloonComponent.Text = "****";
+                    _talkBaloonComponent.Text = _currentText + "****";
                     _visibleSubject.OnNext(true);
                 }
                 else if (p.Type == PayloadType.EndDetected)
@@ -111,6 +115,7 @@ namespace Assets
             });
             _visibleSubject.Throttle(TimeSpan.FromSeconds(5)).Subscribe(p =>
             {
+                _currentText = "";
                 CanvasGroup.alpha = 0;
             });
             CanvasGroup.alpha = 0;
