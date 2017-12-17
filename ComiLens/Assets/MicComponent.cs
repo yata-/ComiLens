@@ -41,18 +41,19 @@ public class MicComponent : MonoBehaviour
         _service = this.GetComponent<CognitiveService>();
     }
 
-    private bool isEnd = false;
+    //private bool isEnd = false;
     void Update()
     {
         timeElapsed += Time.deltaTime;
 
-        if (timeElapsed >= 10 && isEnd == false)
+        if (timeElapsed >= 3)// && isEnd == false)
         {
-            isEnd = true;
-            CheckForErrorOnCall(MicStream.MicStopStream());
+            //isEnd = true;
+            //CheckForErrorOnCall(MicStream.MicStopStream());
             //WriteAudioData();
             if (this._service.IsConnected)
             {
+                Debug.Log("[MicComponent]Send " + DateTime.Now.ToString());
                 this._service.Send(ConvertBytes(samplingData.ToArray()));
             }
             samplingData.Clear();
@@ -131,7 +132,8 @@ public class MicComponent : MonoBehaviour
     }
     private void WriteAudioData()
     {
-        var fileName = "StreamingDataHolo.wav";
+        Debug.Log("WriteAudioData:");
+        var fileName = string.Format("StreamingDataHolo{0}.wav", DateTime.Now.ToString("yyyyMMMMdd_hhmmss"));
         var headerSize = 46;
         short extraSize = 0;
 
@@ -145,7 +147,7 @@ public class MicComponent : MonoBehaviour
         var sampingDataByteSize = samplingDataSize * blockAlign; //DataSize
 
 #if UNITY_EDITOR
-        using (var file = new FileStream(@"C:\Users\guide\Desktop\comirens\" + fileName, FileMode.Create))
+        using (var file = new FileStream(@"C:\Users\guide\Desktop\comirens\sound\" + fileName, FileMode.Create))
         {
 #else
         var task = System.Threading.Tasks.Task.Run(async () =>
