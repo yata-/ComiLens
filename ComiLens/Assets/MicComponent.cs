@@ -71,6 +71,8 @@ public class MicComponent : MonoBehaviour
     {
         CheckForErrorOnCall(MicStream.MicStartStream(false, false));
         CheckForErrorOnCall(MicStream.MicSetGain(1));
+        // MicStream.MicStartStreamのpreviewOnDeviceが動いてない？ので、直接0にしておく
+        gameObject.GetComponent<AudioSource>().volume = 0; 
     }
     private void OnDestroy()
     {
