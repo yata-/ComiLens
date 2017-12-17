@@ -79,6 +79,11 @@ namespace Assets
                     {
                         _talkBaloonComponent.Text = message.DisplayText;
                     }
+
+                }
+                else if (p.Type == PayloadType.StartDetected)
+                {
+                    _talkBaloonComponent.Text = "****";
                 }
             });
 
