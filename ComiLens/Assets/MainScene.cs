@@ -82,13 +82,22 @@ namespace Assets
                 if (p.Type == PayloadType.Phrase)
                 {
                     var message = p.GetMessage();
-                    Debug.Log("WebSocket Message Status" + p.Content);
+                    Debug.Log("WebSocket Message Phrase" + p.Content);
                     if (message.Status == RecognitionStatus.Success)
                     {
                         _talkBaloonComponent.Text = message.DisplayText;
                     }
                     _visibleSubject.OnNext(true);
                 }
+
+                // 日本語だとこない？
+                //else if (p.Type == PayloadType.Hypothesis)
+                //{
+                //    var message = p.GetMessage();
+                //    Debug.Log("WebSocket Message Hypothesis" + p.Content);
+                //    _talkBaloonComponent.Text = message.Text;
+                //    _visibleSubject.OnNext(true);
+                //}
                 else if (p.Type == PayloadType.StartDetected)
                 {
                     CanvasGroup.alpha = 1;
