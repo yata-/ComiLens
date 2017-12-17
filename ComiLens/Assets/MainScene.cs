@@ -15,6 +15,8 @@ namespace Assets
     [RequireComponent(typeof(OptimizationWebCamTextureToMatHelper))]
     public class MainScene : MonoBehaviour
     {
+        private Subject<bool> _visibleSubject;
+
         private TalkBaloonComponent _talkBaloonComponent;
         private CognitiveService _cognitiveService;
 
@@ -65,8 +67,14 @@ namespace Assets
             }
         }
 
+        protected CanvasGroup CanvasGroup
+        {
+            get { return gameObject.GetComponentInChildren<CanvasGroup>(); }
+        }
+
         void Start ()
         {
+            _visibleSubject = new Subject<bool>();
             _talkBaloonComponent = GetComponentInChildren<TalkBaloonComponent>();
             _cognitiveService = GetComponentInChildren<CognitiveService>();
             _cognitiveService.MessageObservable.Subscribe(p =>
@@ -79,13 +87,24 @@ namespace Assets
                     {
                         _talkBaloonComponent.Text = message.DisplayText;
                     }
-
+                    _visibleSubject.OnNext(true);
                 }
                 else if (p.Type == PayloadType.StartDetected)
                 {
+                    CanvasGroup.alpha = 1;
                     _talkBaloonComponent.Text = "****";
+                    _visibleSubject.OnNext(true);
+                }
+                else if (p.Type == PayloadType.EndDetected)
+                {
+                    _visibleSubject.OnNext(false);
                 }
             });
+            _visibleSubject.Throttle(TimeSpan.FromSeconds(5)).Subscribe(p =>
+            {
+                CanvasGroup.alpha = 0;
+            });
+            CanvasGroup.alpha = 0;
 
             _rectangleTracker = new RectangleTracker();
             _webCamTextureToMatHelper = gameObject.GetComponent<OptimizationWebCamTextureToMatHelper>();
