@@ -80,6 +80,7 @@ public class MicComponent : MonoBehaviour
     {
         CheckForErrorOnCall(MicStream.MicDestroy());
     }
+
     private static short FloatToInt16(float value)
     {
         var f = value * short.MaxValue;

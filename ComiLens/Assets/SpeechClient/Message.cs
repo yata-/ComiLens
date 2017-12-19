@@ -78,7 +78,7 @@ namespace Assets.SpeechClient
     {
         public Payload Parse(string value)
         {
-            System.IO.StringReader rs = new System.IO.StringReader(value);
+            var rs = new StringReader(value);
             var requestId = rs.ReadLine().Split(':')[1];
             var contentType = rs.ReadLine().Split(':')[1];
             var path = rs.ReadLine().Split(':')[1];

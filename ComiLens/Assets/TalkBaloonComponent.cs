@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+// 吹き出し
 public class TalkBaloonComponent : MonoBehaviour {
 
     public string Text { get; set; }
@@ -25,7 +26,5 @@ public class TalkBaloonComponent : MonoBehaviour {
 	    }
 	    var trans = canvas.transform.transform;
 	    trans.localPosition = new Vector3(FaceRect.x + FaceRect.width / 2 - 0.5f, 0.5f - FaceRect.y - FaceRect.height / 2 , 600);
-	    //trans.localScale = new Vector3(FaceRect.width, FaceRect.height, 1);
-	    //Debug.Log(string.Format("{0}", FaceRect));
     }
 }
