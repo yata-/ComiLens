@@ -12,23 +12,26 @@ using Assets;
 using HoloToolkit.Unity.InputModule;
 using UnityEngine;
 
+// Micからのオーディオ取得
+// 参考
+// https://qiita.com/miyaura/items/6f2570fe0dc0a8b0b7f1
 [RequireComponent(typeof(AudioSource))]
 public class MicComponent : MonoBehaviour
 {
+    private const int SamplingRate = 48000;
+    private const int ApiSamplingRate = 16000;
 
-    private bool saved;
-    //public float timeOut;
-    private float timeElapsed;
+    private float _timeElapsed;
 
     private CognitiveService _service;
 
+    private List<short> _samplingData = new List<short>();
 
-    private List<short> samplingData = new List<short>();
     // MicStreamに対してフィールドの変数を渡すとアプリが落ちる。。。
-    //private float _averageAmplitude;
     //public bool KeepAllData = false;
     //public float InputGain = 1;
     //public MicStream.StreamCategory StreamType = MicStream.StreamCategory.HIGH_QUALITY_VOICE;
+
     private static void CheckForErrorOnCall(int returnCode)
     {
         MicStream.CheckForErrorOnCall(returnCode);
@@ -37,28 +40,25 @@ public class MicComponent : MonoBehaviour
     private void Awake()
     {
         var setting = AudioSettings.outputSampleRate;
-        CheckForErrorOnCall(MicStream.MicInitializeCustomRate(2, setting));
+        var category =  MicStream.StreamCategory.HIGH_QUALITY_VOICE;
+        CheckForErrorOnCall(MicStream.MicInitializeCustomRate((int)category, setting));
         _service = this.GetComponent<CognitiveService>();
     }
 
-    //private bool isEnd = false;
     void Update()
     {
-        timeElapsed += Time.deltaTime;
+        _timeElapsed += Time.deltaTime;
 
-        if (timeElapsed >= 3)// && isEnd == false)
+        if (_timeElapsed >= 3)
         {
-            //isEnd = true;
-            //CheckForErrorOnCall(MicStream.MicStopStream());
-            //WriteAudioData();
             if (this._service.IsConnected)
             {
                 Debug.Log("[MicComponent]Send " + DateTime.Now.ToString());
-                this._service.Send(ConvertBytes(samplingData.ToArray()));
+                this._service.Send(ConvertBytes(_samplingData.ToArray()));
             }
-            samplingData.Clear();
+            _samplingData.Clear();
 
-            timeElapsed = 0.0f;
+            _timeElapsed = 0.0f;
         }
 
         if (Input.GetKeyDown(KeyCode.S))
@@ -67,7 +67,7 @@ public class MicComponent : MonoBehaviour
             WriteAudioData();
         }
     }
-    // Use this for initialization
+
     void Start()
     {
         CheckForErrorOnCall(MicStream.MicStartStream(false, false));
@@ -75,6 +75,7 @@ public class MicComponent : MonoBehaviour
         // MicStream.MicStartStreamのpreviewOnDeviceが動いてない？ので、直接0にしておく
         gameObject.GetComponent<AudioSource>().volume = 0; 
     }
+
     private void OnDestroy()
     {
         CheckForErrorOnCall(MicStream.MicDestroy());
@@ -88,39 +89,47 @@ public class MicComponent : MonoBehaviour
     }
     private void OnAudioFilterRead(float[] buffer, int numChannels)
     {
-        //Debug.Log("OnAudioFilterRead:");
-        // this is where we call into the DLL and let it fill our audio buffer for us
         CheckForErrorOnCall(MicStream.MicGetFrame(buffer, buffer.Length, numChannels));
         lock (this)
         {
-            //Debug.Log("samplingDataSize:" + buffer.Length);
-            // Resampling datas from microphone(ex:48000hz) to 16000hz.
-            var reduction = 48000 / 16000 * numChannels;
-
-            var convBufSize = buffer.Length / reduction;
-            if (buffer.Length % reduction > 0) convBufSize++;
-            var convBuf = new short[convBufSize];
-            var count = 0;
-            float ave = 0;
-            while (count < convBufSize - 1)
-            {
-                ave = 0;
-                for (var j = 0; j < reduction; j++)
-                    ave += buffer[count * reduction + j];
-                ave = ave / reduction * 20f;
-                convBuf[count] = FloatToInt16(ave);
-                count++;
-            }
-            ave = 0;
-            for (var j = count * reduction; j < buffer.Length; j++)
-                ave += buffer[j];
-            ave = ave / (buffer.Length + count * reduction + 1);
-            convBuf[count] = FloatToInt16(ave);
-
-            samplingData.AddRange(convBuf);
-            //convBuf = null;
+            var convBuf = Resampling(buffer, numChannels);
+            _samplingData.AddRange(convBuf);
         }
     }
+
+    private static short[] Resampling(float[] buffer, int numChannels)
+    {
+        var reduction = SamplingRate / ApiSamplingRate * numChannels;
+        var convBufSize = buffer.Length / reduction;
+        if (buffer.Length % reduction > 0)
+        {
+            convBufSize++;
+        }
+        var convBuf = new short[convBufSize];
+        var count = 0;
+        float ave = 0;
+        while (count < convBufSize - 1)
+        {
+            ave = 0;
+            for (var i = 0; i < reduction; i++)
+            {
+                ave += buffer[count * reduction + i];
+            }
+            // 20fどこからきた？
+            ave = ave / reduction * 20f;
+            convBuf[count] = FloatToInt16(ave);
+            count++;
+        }
+        ave = 0;
+        for (var i = count * reduction; i < buffer.Length; i++)
+        {
+            ave += buffer[i];
+        }
+        ave = ave / (buffer.Length + count * reduction + 1);
+        convBuf[count] = FloatToInt16(ave);
+        return convBuf;
+    }
+
     private IEnumerable<byte> ConvertBytes(short[] sampleData)
     {
         foreach (var s in sampleData)
@@ -139,12 +148,12 @@ public class MicComponent : MonoBehaviour
 
         short toBitsPerSample = 16;
         short toChannels = 1;
-        int toSampleRate = 16000;// AudioSettings.outputSampleRate;
+        int toSampleRate = ApiSamplingRate;
         var blockAlign = (short)(toChannels * (toBitsPerSample / 8));
         var averageBytesPerSecond = toSampleRate * blockAlign;
 
-        var samplingDataSize = samplingData.Count;
-        var sampingDataByteSize = samplingDataSize * blockAlign; //DataSize
+        var samplingDataSize = _samplingData.Count;
+        var sampingDataByteSize = samplingDataSize * blockAlign;
 
 #if UNITY_EDITOR
         using (var file = new FileStream(@"C:\Users\guide\Desktop\comirens\sound\" + fileName, FileMode.Create))
@@ -245,7 +254,7 @@ public class MicComponent : MonoBehaviour
 
                 for (var i = 0; i < samplingDataSize; i++)
                 {
-                    var dat = BitConverter.GetBytes(samplingData[i]);
+                    var dat = BitConverter.GetBytes(_samplingData[i]);
 #if UNITY_EDITOR
                 file.Write(dat, 0, dat.Length);
 #else
