@@ -31,11 +31,16 @@ namespace Assets
 
         private string _token;
         private WebSocket _webSocket;
+        private bool _isDisposed;
 
         public bool IsConnected { get; private set; }
 
         private void ConnectWebSocket()
         {
+            if (_isDisposed)
+            {
+                return;
+            }
             _webSocket = new WebSocket(new Uri(ConversaationEndpoint + LanguageJp));
 
             _webSocket.InternalRequest.SetHeader(AuthorizationHeaderKey, _token);
@@ -64,6 +69,7 @@ namespace Assets
                 }
                 catch (Exception e)
                 {
+                    Debug.Log("WebSocket Parse failed ");
                 }
                 
             };
@@ -108,6 +114,22 @@ namespace Assets
         {
             _subject = new Subject<Payload>();
             Connect("");
+        }
+
+        private void OnDestroy()
+        {
+            _isDisposed = true;
+            if (_webSocket != null)
+            {
+                try
+                {
+                    _webSocket.Close();
+                }
+                catch (Exception e)
+                {
+                    Debug.Log(e);
+                }
+            }
         }
 
         public void Send(IEnumerable<byte> bytes)
