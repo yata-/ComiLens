@@ -128,7 +128,6 @@ namespace Assets
 
         void Update()
         {
-            //_talkBaloonComponent.Text = DateTime.Now.ToString();
             lock (_sync)
             {
                 while (ExecuteOnMainThread.Count > 0)

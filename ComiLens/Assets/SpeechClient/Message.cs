@@ -8,7 +8,8 @@ using Newtonsoft.Json;
 
 namespace Assets.SpeechClient
 {
-
+    // Speech Service WebSocket protocolのプロトコル
+    // https://docs.microsoft.com/ja-jp/azure/cognitive-services/speech/api-reference-rest/websocketprotocol
     public class Payload
     {
         private const string SpeechPrefix = "speech.";
@@ -93,7 +94,4 @@ namespace Assets.SpeechClient
             return message;
         }
     }
-
-
-
 }
