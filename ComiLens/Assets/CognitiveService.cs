@@ -23,10 +23,8 @@ namespace Assets
         private const string TokenEndpoint = "https://api.cognitive.microsoft.com/sts/v1.0/issueToken";
         
         private const string SubscrpitionHeaderKey = "Ocp-Apim-Subscription-Key";
-        private const string ContentTypeHeaderKey = "Content-type";
-        private const string ContentTypeHeaderValue = "audio/wav; codec=audio/pcm; samplerate=16000";
+        private const string UpgradeHeaderKey = "Upgrade";
         private const string AuthorizationHeaderKey = "Authorization";
-        private const string AuthorizationHeaderValuePrefix = "Bearer ";
 
         private const string TransferEncodingHeaderKey = "Transfer-Encoding";
         private const string TransferEncodingHeaderValue = "chunked";
@@ -40,16 +38,15 @@ namespace Assets
         {
             _webSocket = new WebSocket(new Uri(ConversaationEndpoint + LanguageJp));
 
-            _webSocket.InternalRequest.SetHeader("Authorization", _token);
-            _webSocket.InternalRequest.SetHeader("Upgrade", "websocket");
+            _webSocket.InternalRequest.SetHeader(AuthorizationHeaderKey, _token);
+            _webSocket.InternalRequest.SetHeader(UpgradeHeaderKey, "websocket");
             _webSocket.InternalRequest.SetHeader("Connection", "Upgrade");
             _webSocket.InternalRequest.SetHeader("Origin", "https://speech.platform.bing.com");
             _webSocket.InternalRequest.SetHeader("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==");
             _webSocket.InternalRequest.SetHeader("Sec-WebSocket-Version", "13");
-            _webSocket.InternalRequest.SetHeader("Origin", "https://speech.platform.bing.com");
             _webSocket.OnErrorDesc += (s, e) =>
             {
-                Debug.Log("WebSocket OnError!");
+                Debug.Log("S OnError!");
             };
             _webSocket.OnClosed += (s, i, m) =>
             {
@@ -90,7 +87,7 @@ namespace Assets
 
         }
 
-        public void Connect(string subscriptionKey)
+        private void Connect(string subscriptionKey)
         {
             Debug.Log(string.Format("Cognitive Request: {0}", subscriptionKey));
             StartCoroutine(RequestToken(subscriptionKey));
@@ -106,25 +103,16 @@ namespace Assets
             Debug.Log(string.Format("Cognitive Token: {0}", _token));
             ConnectWebSocket();
         }
+
         void Start()
         {
             _subject = new Subject<Payload>();
-
-            var service = GetComponent<CognitiveService>();
-            service.Connect("");
+            Connect("");
         }
-
 
         public void Send(IEnumerable<byte> bytes)
         {
-            var requestid = Guid.NewGuid().ToString("N");
-            var outputBuilder = new StringBuilder();
-            outputBuilder.Append("path:audio" + Environment.NewLine);
-            outputBuilder.Append("x-requestid:" + requestid  + Environment.NewLine);
-            outputBuilder.Append("x-timestamp:" +DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffK")+ Environment.NewLine);
-            outputBuilder.Append("content-type:audio/x-wav" + Environment.NewLine);
-
-            var headerBytes = Encoding.ASCII.GetBytes(outputBuilder.ToString());
+            var headerBytes = new RequestHeader().ToBytes();
             //var headerbuffer = new ArraySegment<byte>(headerBytes, 0, headerBytes.Length);
             //var str = "0x" + (headerBytes.Length).ToString("X");
             var headerHeadBytes = BitConverter.GetBytes((UInt16)headerBytes.Length);
@@ -141,46 +129,42 @@ namespace Assets
             //cursor += length;
 
             var arr = headerHead.Concat(headerBytes).Concat(bytes).ToArray();
-            //var data = new List<byte>(GetWaveHeader());
-            //data.AddRange(bytes);
-
             _webSocket.Send(arr);
         }
 
-        /// <summary>
-        ///     Create a RIFF Wave Header for PCM 16bit 16kHz Mono
-        /// </summary>
-        /// <returns></returns>
-        private byte[] GetWaveHeader()
+        private class RequestHeader
         {
-            var extraSize = 0;
-            var blockAlign = (short)(1 * (16 / 8));
-            var averageBytesPerSecond = 16000 * blockAlign;
+            private const string PathKeyValue = "path:audio";
+            private const string TypeKeyValue = "content-type:audio/x-wav";
 
-            using (var stream = new MemoryStream())
+            private const string RequestKey = "x-requestid";
+            private const string TimeStampKey = "x-timestamp";
+
+
+            private const string DateFormat = "yyyy-MM-ddTHH:mm:ss.fffK";
+            public DateTime RequestDate { get; private set; }
+            public string Id { get; private set; }
+            public RequestHeader()
             {
-                var writer = new BinaryWriter(stream, Encoding.UTF8);
-                writer.Write(Encoding.UTF8.GetBytes("RIFF"));
-                writer.Write(0);
-                writer.Write(Encoding.UTF8.GetBytes("WAVE"));
-                writer.Write(Encoding.UTF8.GetBytes("fmt "));
-                writer.Write(18 + extraSize);
-                writer.Write((short)1);
-                writer.Write(1);
-                writer.Write(16000);
-                writer.Write(averageBytesPerSecond);
-                writer.Write(blockAlign);
-                writer.Write(16);
-                writer.Write((short)extraSize);
-
-                writer.Write(Encoding.UTF8.GetBytes("data"));
-                writer.Write(0);
-
-                stream.Position = 0;
-                var buffer = new byte[stream.Length];
-                stream.Read(buffer, 0, buffer.Length);
-                return buffer;
+                Id = Guid.NewGuid().ToString("N");
+                RequestDate = DateTime.UtcNow;
             }
+
+            public override string ToString()
+            {
+                var sb = new StringBuilder();
+                sb.Append(PathKeyValue + Environment.NewLine);
+                sb.Append(string.Format("{0}:{1}{2}", RequestKey, Id , Environment.NewLine));
+                sb.Append(string.Format("{0}:{1}{2}", TimeStampKey,  RequestDate.ToString(DateFormat) , Environment.NewLine));
+                sb.Append(TypeKeyValue + Environment.NewLine);
+                return sb.ToString();
+            }
+
+            public byte[] ToBytes()
+            {
+                return Encoding.ASCII.GetBytes(ToString());
+            }
+
         }
 
     }
