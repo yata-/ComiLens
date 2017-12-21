@@ -52,6 +52,13 @@ namespace Assets
         private RectangleTracker _rectangleTracker;
         List<Rect> _resultObjects = new List<Rect>();
 
+        private Camera _camera;
+
+        private Camera GetCamera()
+        {
+            return this.gameObject.scene.GetRootGameObjects().ToList().Select(p => p.GetComponentInChildren<Camera>()).Where(p=>p != null)
+                .FirstOrDefault();
+        }
 
         bool _isThreadRunning = false;
 
@@ -76,6 +83,7 @@ namespace Assets
 
         void Start ()
         {
+            _camera = GetCamera();
             _currentText = "";
             _visibleSubject = new Subject<bool>();
             _talkBaloonComponent = GetComponentInChildren<TalkBaloonComponent>();
@@ -93,7 +101,6 @@ namespace Assets
                     }
                     _visibleSubject.OnNext(true);
                 }
-
                 // 日本語だとこない？
                 //else if (p.Type == PayloadType.Hypothesis)
                 //{
@@ -124,6 +131,27 @@ namespace Assets
             _webCamTextureToMatHelper = gameObject.GetComponent<OptimizationWebCamTextureToMatHelper>();
             _webCamTextureToMatHelper.Initialize();
             EnableDetection = true;
+
+
+            CanvasGroup.alpha = 1;
+            _talkBaloonComponent.Text = _currentText + "****";
+        }
+
+        private Vector3? MatPointToWorldPoint(Point point, Mat image)
+        {
+            // 画像座標を正規化，Y軸の向きを反転し，ビューポート座標を求める．
+            float viewportPointX = (float)(point.x / (double)image.width());
+            float viewportPointY = (float)(1.0 - point.y / (double)image.height());
+            Vector3 viewportPoint = new Vector3(viewportPointX, viewportPointY);
+
+            // Rayを使って，Z軸も含んだワールド座標を求める．
+            Ray ray = _camera.ViewportPointToRay(viewportPoint);
+            RaycastHit hitInfo;
+            if (Physics.Raycast(ray, out hitInfo))
+            {
+                return hitInfo.point;
+            }
+            return null;
         }
 
         void Update()
@@ -166,7 +194,13 @@ namespace Assets
                     var rect = rects.FirstOrDefault();
                     if (rect != null)
                     {
-                        _talkBaloonComponent.FaceRect = rect;
+                        _talkBaloonComponent.FacePosition = MatPointToWorldPoint(new Point(rect.x, rect.y), rgbaMat);
+                        CanvasGroup.alpha = 1;
+                    }
+                    else
+                    {
+                        Debug.Log("Face not found");
+                        CanvasGroup.alpha = 0;
                     }
                 }
             }
