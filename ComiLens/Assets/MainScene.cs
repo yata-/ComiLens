@@ -51,15 +51,7 @@ namespace Assets
 
         private RectangleTracker _rectangleTracker;
         List<Rect> _resultObjects = new List<Rect>();
-
-        private Camera _camera;
-
-        private Camera GetCamera()
-        {
-            return this.gameObject.scene.GetRootGameObjects().ToList().Select(p => p.GetComponentInChildren<Camera>()).Where(p=>p != null)
-                .FirstOrDefault();
-        }
-
+        
         bool _isThreadRunning = false;
 
         bool isThreadRunning
@@ -83,7 +75,8 @@ namespace Assets
 
         void Start ()
         {
-            _camera = GetCamera();
+            Debug.Log(string.Format("{0}, {1},  {2},{3}", Screen.width, Screen.height, Camera.main.pixelWidth, Camera.main.pixelHeight));
+            //trans.localPosition = new Vector3(Screen.width / 2 * FacePosition.Value.x, Screen.height / 2 * FacePosition.Value.y, 600);
             _currentText = "";
             _visibleSubject = new Subject<bool>();
             _talkBaloonComponent = GetComponentInChildren<TalkBaloonComponent>();
@@ -137,15 +130,31 @@ namespace Assets
             _talkBaloonComponent.Text = _currentText + "****";
         }
 
-        private Vector3? MatPointToWorldPoint(Point point, Mat image)
+        private Vector2 EstimateMousePosition(Rect rect)
+        {
+            var x = rect.x + (rect.width * 1.3f);// / 4 * 3);
+            var y = rect.y + (rect.height / 2);
+            return new Vector2(x, y);
+        }
+
+        private Vector3 GetGazePoint()
+        {
+            var headPosition = Camera.main.transform.position;
+            var gazeDirection = Camera.main.transform.forward;
+            RaycastHit hitInfo;
+            Physics.Raycast(headPosition, gazeDirection, out hitInfo);
+            Debug.Log(string.Format("hitInfo.point {0}, {1}", hitInfo.point.x, hitInfo.point.y));
+            return hitInfo.point;
+        }
+
+        private Vector3? MatPointToWorldPoint(Vector2 point, Mat image)
         {
             // 画像座標を正規化，Y軸の向きを反転し，ビューポート座標を求める．
             float viewportPointX = (float)(point.x / (double)image.width());
             float viewportPointY = (float)(1.0 - point.y / (double)image.height());
             Vector3 viewportPoint = new Vector3(viewportPointX, viewportPointY);
-
-            // Rayを使って，Z軸も含んだワールド座標を求める．
-            Ray ray = _camera.ViewportPointToRay(viewportPoint);
+            Ray ray = Camera.main.ViewportPointToRay(viewportPoint);
+            //// Rayを使って，Z軸も含んだワールド座標を求める．
             RaycastHit hitInfo;
             if (Physics.Raycast(ray, out hitInfo))
             {
@@ -153,6 +162,16 @@ namespace Assets
             }
             return null;
         }
+
+        private Vector3 GetViewPoint(Vector2 point, Mat image)
+        {
+            // 画像座標を正規化，Y軸の向きを反転し，ビューポート座標を求める．
+            float viewportPointX = (float)(point.x / (double)image.width());
+            float viewportPointY = (float)(1.0 - point.y / (double)image.height());
+            Vector3 viewportPoint = new Vector3(viewportPointX, viewportPointY);
+            return viewportPoint;
+        }
+
 
         void Update()
         {
@@ -194,13 +213,15 @@ namespace Assets
                     var rect = rects.FirstOrDefault();
                     if (rect != null)
                     {
-                        _talkBaloonComponent.FacePosition = MatPointToWorldPoint(new Point(rect.x, rect.y), rgbaMat);
-                        CanvasGroup.alpha = 1;
+                        var estimate = EstimateMousePosition(rect);
+                        Debug.Log(string.Format("estimated {0}, {1}", estimate.x, estimate.y));
+                        _talkBaloonComponent.FacePosition = GetViewPoint(estimate, rgbaMat);
+                        _talkBaloonComponent.IsTailVisible = true;
                     }
                     else
                     {
-                        Debug.Log("Face not found");
-                        CanvasGroup.alpha = 0;
+                        _talkBaloonComponent.IsTailVisible = false;
+                        //Debug.Log("Face not found");
                     }
                 }
             }
@@ -224,8 +245,7 @@ namespace Assets
                 // Rotate the canvas object so that it faces the user.
                 Quaternion rotation = Quaternion.LookRotation(-cameraToWorldMatrix.GetColumn(2), cameraToWorldMatrix.GetColumn(1));
                 gameObject.transform.rotation = rotation;
-
-                //_rectOverlay.UpdateOverlayTransform(gameObject.transform);
+                
             }
         }
         private Vector3 UnProjectVector(Matrix4x4 proj, Vector3 to)
