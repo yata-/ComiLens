@@ -12,5 +12,8 @@ EditorBuildSettings:
     path: Assets/HoloLensWithOpenCVForUnityExample/HoloLensFaceDetectionExample/HoloLensFaceDetectionExample.unity
     guid: baa2a4dbb3054d14090050638224d277
   - enabled: 1
+    path: Assets/TitleScene.unity
+    guid: 28ffa48118edead43a1112e960ef8a9d
+  - enabled: 1
     path: Assets/MainScene.unity
     guid: 92f4737e5fb26734eb8323488b4ddae6
