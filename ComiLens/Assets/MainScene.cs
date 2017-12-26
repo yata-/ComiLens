@@ -126,8 +126,8 @@ namespace Assets
             EnableDetection = true;
 
 
-            CanvasGroup.alpha = 1;
-            _talkBaloonComponent.Text = _currentText + "****";
+            //CanvasGroup.alpha = 1;
+            //_talkBaloonComponent.Text = _currentText + "****";
         }
 
         private Vector2 EstimateMousePosition(Rect rect)
@@ -245,7 +245,6 @@ namespace Assets
                 // Rotate the canvas object so that it faces the user.
                 Quaternion rotation = Quaternion.LookRotation(-cameraToWorldMatrix.GetColumn(2), cameraToWorldMatrix.GetColumn(1));
                 gameObject.transform.rotation = rotation;
-                
             }
         }
         private Vector3 UnProjectVector(Matrix4x4 proj, Vector3 to)

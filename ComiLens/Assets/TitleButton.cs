@@ -1,12 +1,17 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using UniRx;
 using UnityEngine;
 
 public class TitleButton : MonoBehaviour {
 
-	// Use this for initialization
-	void Start () {
-		
+    private Subject<MonoBehaviour> _onClicked;
+    public IObservable<MonoBehaviour> OnClicked { get { return _onClicked; } }
+
+    // Use this for initialization
+    void Start () {
+		_onClicked = new Subject<MonoBehaviour>();
 	}
 	
 	// Update is called once per frame
@@ -15,6 +20,6 @@ public class TitleButton : MonoBehaviour {
     }
     public void Click()
     {
-        Debug.Log("Clicked.");
+        this._onClicked.OnNext(this);
     }
 }
