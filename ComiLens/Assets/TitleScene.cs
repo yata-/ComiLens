@@ -6,21 +6,13 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class TitleScene : MonoBehaviour {
-
-    private Matrix4x4 _projectionMatrix;
-    private const float OverlayDistance = 1;
     private TitleButton _button;
-    private InputField _inputField;
 
     // Use this for initialization
     void Start () {
-        _projectionMatrix = ConstValue.GetProjectMatrix();
         _button = GetComponentInChildren<TitleButton>();
-        _inputField = GetComponentInChildren<InputField>();
         _button.OnClicked.Subscribe(p =>
         {
-            var key = _inputField.text;
-            Debug.Log(key);
             SceneManager.LoadScene("MainScene");
         }).AddTo(this);
     }
@@ -28,5 +20,17 @@ public class TitleScene : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
+    }
+    private string SettingFileDirectoryPath()
+    {
+        string directorypath = "";
+#if WINDOWS_UWP
+        // HoloLens上での動作の場合、LocalAppData/AppName/LocalStateフォルダを参照する
+        directorypath = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+#else
+// Unity上での動作の場合、Assets/StreamingAssetsフォルダを参照する
+    directorypath = UnityEngine.Application.streamingAssetsPath;
+#endif
+        return directorypath;
     }
 }
