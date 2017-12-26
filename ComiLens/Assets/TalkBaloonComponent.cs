@@ -41,5 +41,4 @@ public class TalkBaloonComponent : MonoBehaviour
         Debug.Log(string.Format("[TalkBaloonComponent]x {0}, y {1}, z {2}",  FacePosition.Value.x, FacePosition.Value.y, FacePosition.Value.z));//, FacePosition.width, FacePosition.height));
     }
 
-    
 }

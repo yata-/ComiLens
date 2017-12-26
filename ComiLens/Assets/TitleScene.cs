@@ -42,4 +42,8 @@ public class TitleScene : MonoBehaviour {
         from.x = (to.x - (from.z * axsX.z)) / axsX.x;
         return from;
     }
+    public void Click()
+    {
+        Debug.Log("Clicked.");
+    }
 }
