@@ -116,7 +116,10 @@ namespace Assets
         void Start()
         {
             _subject = new Subject<Payload>();
-            Connect("");
+            if (string.IsNullOrEmpty(StateManager.Key) == false)
+            {
+                Connect(StateManager.Key);
+            }
         }
 
         private void OnDestroy()

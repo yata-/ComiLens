@@ -1,5 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using UniRx;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -9,28 +12,46 @@ public class TitleScene : MonoBehaviour {
     private TitleButton _button;
 
     // Use this for initialization
-    void Start () {
+    void Start ()
+    {
         _button = GetComponentInChildren<TitleButton>();
         _button.OnClicked.Subscribe(p =>
         {
             SceneManager.LoadScene("MainScene");
         }).AddTo(this);
+
+        try
+        {
+            StateManager.Key = GetKey();
+        }
+        catch (Exception e)
+        {
+            _button.enabled = false;
+            this.GetComponentInChildren<Text>().text = "API Keyファイルが見つかりません。";
+        }
+        
     }
 	
 	// Update is called once per frame
 	void Update () {
 
     }
-    private string SettingFileDirectoryPath()
+
+    private string GetKey()
     {
-        string directorypath = "";
-#if WINDOWS_UWP
-        // HoloLens上での動作の場合、LocalAppData/AppName/LocalStateフォルダを参照する
-        directorypath = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+
+#if UNITY_EDITOR
+       return "";
 #else
-// Unity上での動作の場合、Assets/StreamingAssetsフォルダを参照する
-    directorypath = UnityEngine.Application.streamingAssetsPath;
+        var task = Windows.Storage.ApplicationData.Current.LocalFolder.OpenStreamForReadAsync("key");
+        task.Wait();
+        using (var stream = task.Result)
+        {
+            var sr = new System.IO.StreamReader(stream);
+            return sr.ReadToEnd();
+        }
 #endif
-        return directorypath;
+
     }
+
 }
