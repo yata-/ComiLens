@@ -31,8 +31,6 @@ namespace Assets
 
         object _sync = new object();
 
-        Texture2D texture;
-
         Mat _grayMat;
         // 物体検出
         private CascadeClassifier _cascade;
@@ -42,7 +40,6 @@ namespace Assets
         private Mat _grayMat4Thread;
         private CascadeClassifier _cascade4Thread;
 
-        private string _currentText = "";
 
         private Matrix4x4 _projectionMatrix;
         private OptimizationWebCamTextureToMatHelper _webCamTextureToMatHelper;
@@ -51,6 +48,7 @@ namespace Assets
 
         private RectangleTracker _rectangleTracker;
         List<Rect> _resultObjects = new List<Rect>();
+        private TalkDataContainer _talkDataContainer;
         
         bool _isThreadRunning = false;
 
@@ -75,9 +73,9 @@ namespace Assets
 
         void Start ()
         {
+            _talkDataContainer = new TalkDataContainer();
             Debug.Log(string.Format("{0}, {1},  {2},{3}", Screen.width, Screen.height, Camera.main.pixelWidth, Camera.main.pixelHeight));
             //trans.localPosition = new Vector3(Screen.width / 2 * FacePosition.Value.x, Screen.height / 2 * FacePosition.Value.y, 600);
-            _currentText = "";
             _visibleSubject = new Subject<bool>();
             _talkBaloonComponent = GetComponentInChildren<TalkBaloonComponent>();
             _cognitiveService = GetComponentInChildren<CognitiveService>();
@@ -89,8 +87,8 @@ namespace Assets
                     Debug.Log("WebSocket Message Phrase" + p.Content);
                     if (message.Status == RecognitionStatus.Success)
                     {
-                        _currentText += message.DisplayText;
-                        _talkBaloonComponent.Text = _currentText;
+                        _talkDataContainer.AddMessage(message.DisplayText, Time.time);
+                        _talkBaloonComponent.Text = _talkDataContainer.GetString();
                     }
                     _visibleSubject.OnNext(true);
                 }
@@ -105,7 +103,7 @@ namespace Assets
                 else if (p.Type == PayloadType.StartDetected)
                 {
                     CanvasGroup.alpha = 1;
-                    _talkBaloonComponent.Text = _currentText + "****";
+                    _talkBaloonComponent.Text = _talkDataContainer.GetString() + "****";
                     _visibleSubject.OnNext(true);
                 }
                 else if (p.Type == PayloadType.EndDetected)
@@ -115,7 +113,7 @@ namespace Assets
             });
             _visibleSubject.Throttle(TimeSpan.FromSeconds(5)).Subscribe(p =>
             {
-                _currentText = "";
+                _talkDataContainer.Clear();
                 CanvasGroup.alpha = 0;
             });
             CanvasGroup.alpha = 0;
@@ -175,6 +173,7 @@ namespace Assets
 
         void Update()
         {
+            _talkDataContainer.Update(Time.time);
             lock (_sync)
             {
                 while (ExecuteOnMainThread.Count > 0)
