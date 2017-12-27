@@ -108,7 +108,6 @@ namespace Assets
                 }
                 else if (p.Type == PayloadType.EndDetected)
                 {
-                    _visibleSubject.OnNext(false);
                 }
             });
             _visibleSubject.Throttle(TimeSpan.FromSeconds(5)).Subscribe(p =>
