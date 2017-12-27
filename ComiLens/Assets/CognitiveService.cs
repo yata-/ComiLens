@@ -140,6 +140,7 @@ namespace Assets
 
         public void Send(IEnumerable<byte> bytes)
         {
+            //　とりあえずチャンクなしで送る
             var headerBytes = new RequestHeader().ToBytes();
             //var headerbuffer = new ArraySegment<byte>(headerBytes, 0, headerBytes.Length);
             //var str = "0x" + (headerBytes.Length).ToString("X");
